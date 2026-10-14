@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 OSV_BATCH_URL = "https://api.osv.dev/v1/querybatch"
 OSV_VULN_URL = "https://api.osv.dev/v1/vulns/{id}"
 BREAKING_WARNING = "(Warning: Major breaking upgrade)"
+NO_SUMMARY = "No summary available."
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,9 +140,24 @@ def query_osv(packages: dict[str, str], *, timeout: float = 30.0) -> list[Vulner
                     package=name,
                     version=version,
                     vuln_id=_cve_id(vuln),
-                    summary=vuln.get("summary") or "No summary available.",
+                    summary=vuln.get("summary") or NO_SUMMARY,
                     fixed_version=fix.version if fix else None,
                     breaking=fix.breaking if fix else False,
                 )
             )
-    return out
+    return _dedupe(out)
+
+
+def _dedupe(vulns: list[Vulnerability]) -> list[Vulnerability]:
+    """OSV lists one CVE under several IDs (GHSA/PYSEC); keep the most informative."""
+    best: dict[tuple[str, str, str], Vulnerability] = {}
+    for v in vulns:
+        key = (v.package, v.version, v.vuln_id)
+        cur = best.get(key)
+        if cur is None or _richness(v) > _richness(cur):
+            best[key] = v
+    return list(best.values())
+
+
+def _richness(v: Vulnerability) -> int:
+    return (v.summary != NO_SUMMARY) * 2 + (v.fixed_version is not None)

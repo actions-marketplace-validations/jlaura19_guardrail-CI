@@ -187,6 +187,21 @@ def test_query_osv_uses_minimal_safe_upgrade(mock_osv):
     assert second.fix_label == f"5.2.16 {BREAKING_WARNING}"
 
 
+def test_same_cve_under_multiple_osv_ids_is_reported_once(mock_osv):
+    mock_osv.post(OSV_BATCH_URL).respond(
+        json={"results": [{"vulns": [{"id": "PYSEC-1"}, {"id": "GHSA-1"}]}]}
+    )
+    mock_osv.get(VULN_URL.format(id="PYSEC-1")).respond(
+        json=vuln_detail("PYSEC-1", aliases=["CVE-9"], summary="", package="requests", fixed="2.31.0")
+    )
+    mock_osv.get(VULN_URL.format(id="GHSA-1")).respond(
+        json=vuln_detail("GHSA-1", aliases=["CVE-9"], summary="Header leak", package="requests", fixed="2.31.0")
+    )
+    (v,) = query_osv({"requests": "2.20.0"})
+    assert v.vuln_id == "CVE-9"
+    assert v.summary == "Header leak"
+
+
 def test_detail_failure_still_reports_vulnerability(mock_osv, caplog):
     mock_osv.post(OSV_BATCH_URL).respond(json={"results": [{"vulns": [{"id": "GHSA-bad"}]}]})
     mock_osv.get(VULN_URL.format(id="GHSA-bad")).respond(500)
