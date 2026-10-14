@@ -1,0 +1,54 @@
+name: Release
+
+# Pushing a tag like v1.2.3 publishes a GitHub Release and moves the floating
+# major tag (v1) so `uses: jlaura19/guardrail-CI@v1` always gets the latest 1.x.
+# The floating tag (`v1`) does not match `v*.*.*`, so it cannot re-trigger this.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag is strict SemVer and matches pyproject.toml
+        run: |
+          if ! [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not vMAJOR.MINOR.PATCH[-prerelease]"; exit 1
+          fi
+          echo "MAJOR_TAG=v${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          [ -n "${BASH_REMATCH[4]}" ] && echo "PRERELEASE=true" >> "$GITHUB_ENV" || echo "PRERELEASE=false" >> "$GITHUB_ENV"
+          PKG_VERSION=$(python3 -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ "v$PKG_VERSION" != "$TAG" ]; then
+            echo "::error::pyproject.toml version ($PKG_VERSION) does not match tag ($TAG)"; exit 1
+          fi
+
+      - name: Create GitHub Release with generated notes
+        run: |
+          flags=(--generate-notes --verify-tag --title "$TAG")
+          [ "$PRERELEASE" = "true" ] && flags+=(--prerelease)
+          gh release create "$TAG" "${flags[@]}"
+
+      - name: Move floating major tag
+        if: env.PRERELEASE == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa "$MAJOR_TAG" -m "Latest $MAJOR_TAG release ($TAG)" "$GITHUB_SHA"
+          git push origin "refs/tags/$MAJOR_TAG" --force

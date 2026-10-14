@@ -1,5 +1,9 @@
 name: GuardRail-CI
-description: Scan Python code for insecure FastAPI routes, vulnerable dependencies and hardcoded secrets, and comment on the PR.
+author: jlaura19
+description: Catch unauthenticated FastAPI routes, vulnerable dependencies and leaked secrets in PRs, with an auto-updating comment.
+branding:
+  icon: shield
+  color: blue
 inputs:
   target-dir:
     description: Directory to scan.

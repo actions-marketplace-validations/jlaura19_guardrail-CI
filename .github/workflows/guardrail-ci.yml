@@ -25,7 +25,7 @@ name: GuardRail-CI
 #          GuardRail only parses files with `ast`, which does not execute them.
 #       3. Do NOT use `uses: ./` there: it would load the PR's own action.yml
 #          (attacker controlled). Use a trusted ref instead, e.g.
-#          `uses: OWNER/guardrail-ci@v1`, or better a full commit SHA.
+#          `uses: jlaura19/guardrail-CI@v1`, or better a full commit SHA.
 #     A ready-to-enable job is included (commented out) at the bottom.
 #   * Option C: scan in `pull_request` (no write access), upload the markdown
 #     as an artifact, and post it from a separate `workflow_run` workflow that
@@ -78,7 +78,7 @@ jobs:
 #         with:
 #           ref: ${{ github.event.pull_request.head.sha }}
 #           persist-credentials: false
-#       - uses: OWNER/guardrail-ci@v1   # trusted ref, NOT `./`
+#       - uses: jlaura19/guardrail-CI@v1   # trusted ref, NOT `./`
 #         env:
 #           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #         with:

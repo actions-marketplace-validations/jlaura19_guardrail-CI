@@ -1,13 +1,11 @@
 # 🛡️ GuardRail-CI
 
-[![CI](https://github.com/OWNER/guardrail-ci/actions/workflows/guardrail-ci.yml/badge.svg)](https://github.com/OWNER/guardrail-ci/actions/workflows/guardrail-ci.yml)
+[![CI](https://github.com/jlaura19/guardrail-CI/actions/workflows/guardrail-ci.yml/badge.svg)](https://github.com/jlaura19/guardrail-CI/actions/workflows/guardrail-ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 
 **Catch unauthenticated FastAPI routes, vulnerable dependencies and leaked secrets before they merge.**
 GuardRail-CI reads your code (it never runs it), then posts one tidy, self-updating comment on the pull request with exactly what to fix.
-
-> Replace `OWNER` in the badges and snippets below with your GitHub user or organisation.
 
 ## What it finds
 
@@ -48,7 +46,7 @@ Dependency findings come with a **minimal safe upgrade**: the lowest fixed versi
 ## Quickstart
 
 ```bash
-pip install guardrail-ci          # or: pip install git+https://github.com/OWNER/guardrail-ci
+pip install git+https://github.com/jlaura19/guardrail-CI   # from source; PyPI release not published yet
 guardrail scan .                  # rich table in the terminal
 guardrail scan . --format markdown
 ```
@@ -78,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: OWNER/guardrail-ci@v1
+      - uses: jlaura19/guardrail-CI@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
