@@ -1,0 +1,25 @@
+name: GuardRail-CI
+description: Scan Python code for insecure FastAPI routes, vulnerable dependencies and hardcoded secrets, and comment on the PR.
+inputs:
+  target-dir:
+    description: Directory to scan.
+    required: false
+    default: "."
+  github-token:
+    description: Token used to post the PR comment (needs pull-requests write).
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install GuardRail-CI
+      shell: bash
+      run: python -m pip install "${{ github.action_path }}"
+    - name: Run scan
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        TARGET_DIR: ${{ inputs.target-dir }}
+      run: guardrail scan "$TARGET_DIR" --format markdown --github-pr

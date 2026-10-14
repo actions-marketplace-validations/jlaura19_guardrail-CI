@@ -1,0 +1,86 @@
+name: GuardRail-CI
+
+# ---------------------------------------------------------------------------
+# Why `pull_request` is the safe default
+#   * For PRs opened from a branch inside THIS repository, `pull_request`
+#     runs get a GITHUB_TOKEN that honours the `permissions:` block below, so
+#     GuardRail can post its comment.
+#   * The code that runs comes from the PR's merge commit; that is acceptable
+#     because the author already has write access to the repo.
+#
+# Pull requests from FORKS
+#   * On `pull_request`, GitHub downgrades the token for forks to read-only and
+#     withholds secrets. The scan still runs and still fails the check with
+#     exit code 1, but the comment cannot be written (GuardRail prints a
+#     warning instead of crashing on the 403).
+#   * Option A (recommended): leave this file as is. Fork PRs get a red/green
+#     check, and the details are in the job log.
+#   * Option B: `pull_request_target` runs in the context of the BASE repo
+#     with a write token. That is dangerous if it ever executes PR code. Only
+#     use it with ALL of the following:
+#       1. Check out the PR commit explicitly, as DATA only:
+#            ref: ${{ github.event.pull_request.head.sha }}
+#            persist-credentials: false
+#       2. Never `pip install` / run / import anything from the checked-out PR.
+#          GuardRail only parses files with `ast`, which does not execute them.
+#       3. Do NOT use `uses: ./` there: it would load the PR's own action.yml
+#          (attacker controlled). Use a trusted ref instead, e.g.
+#          `uses: OWNER/guardrail-ci@v1`, or better a full commit SHA.
+#     A ready-to-enable job is included (commented out) at the bottom.
+#   * Option C: scan in `pull_request` (no write access), upload the markdown
+#     as an artifact, and post it from a separate `workflow_run` workflow that
+#     downloads the artifact. Safest when you need comments on fork PRs.
+# ---------------------------------------------------------------------------
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Least privilege for every job. `pull-requests: write` is only needed to
+# create/update the report comment; nothing here pushes code.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: guardrail-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guardrail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: GuardRail-CI scan
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          target-dir: "."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+# ---------------------------------------------------------------------------
+# Option B: fork-friendly job (replace the trigger and job above to use it).
+# ---------------------------------------------------------------------------
+# on:
+#   pull_request_target:
+#     types: [opened, synchronize, reopened]
+#
+# jobs:
+#   guardrail:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           ref: ${{ github.event.pull_request.head.sha }}
+#           persist-credentials: false
+#       - uses: OWNER/guardrail-ci@v1   # trusted ref, NOT `./`
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           target-dir: "."
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
