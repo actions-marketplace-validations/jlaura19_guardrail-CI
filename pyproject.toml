@@ -1,6 +1,6 @@
 [project]
 name = "guardrail-ci"
-version = "0.1.0"
+version = "1.0.0"
 description = "Developer-first SAST for FastAPI: insecure routes, vulnerable dependencies and hardcoded secrets."
 readme = "README.md"
 license = { text = "MIT" }
